@@ -3,12 +3,14 @@ package rmblworx.tools.timey.gui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ToggleButton;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +39,7 @@ public class StopwatchControllerTest extends FxmlGuiControllerTest {
 	private Label stopwatchTimeLabel;
 	private Button stopwatchStartButton;
 	private Button stopwatchStopButton;
+	private ToggleButton stopwatchSplitTimeButton;
 	private Button stopwatchResetButton;
 
 	/**
@@ -53,6 +56,7 @@ public class StopwatchControllerTest extends FxmlGuiControllerTest {
 		stopwatchTimeLabel = (Label) scene.lookup("#stopwatchTimeLabel");
 		stopwatchStartButton = (Button) scene.lookup("#stopwatchStartButton");
 		stopwatchStopButton = (Button) scene.lookup("#stopwatchStopButton");
+		stopwatchSplitTimeButton = (ToggleButton) scene.lookup("#stopwatchSplitTimeButton");
 		stopwatchResetButton = (Button) scene.lookup("#stopwatchResetButton");
 	}
 
@@ -60,13 +64,16 @@ public class StopwatchControllerTest extends FxmlGuiControllerTest {
 	 * Testet den Zustand der Schaltflächen je nach Zustand der Stoppuhr.
 	 */
 	@Test
-	public final void testStopwatchStartStopResetButtonStates() {
+	public final void testStopwatchButtonStates() {
 		// Zustand der Schaltflächen testen
 		assertTrue(stopwatchStartButton.isVisible());
 		assertFalse(stopwatchStartButton.isDisabled());
 
 		assertFalse(stopwatchStopButton.isVisible());
 		assertFalse(stopwatchStopButton.isDisabled());
+
+		assertTrue(stopwatchSplitTimeButton.isVisible());
+		assertTrue(stopwatchSplitTimeButton.isDisabled());
 
 		assertTrue(stopwatchResetButton.isVisible());
 		assertFalse(stopwatchResetButton.isDisabled());
@@ -84,6 +91,50 @@ public class StopwatchControllerTest extends FxmlGuiControllerTest {
 		assertFalse(stopwatchStopButton.isDisabled());
 		assertTrue(stopwatchStopButton.isFocused());
 
+		assertTrue(stopwatchSplitTimeButton.isVisible());
+		assertFalse(stopwatchSplitTimeButton.isDisabled());
+		assertFalse(stopwatchSplitTimeButton.isSelected());
+
+		assertTrue(stopwatchResetButton.isVisible());
+		assertFalse(stopwatchResetButton.isDisabled());
+
+		// Zwischenzeit aktivieren
+		stopwatchSplitTimeButton.fire();
+		FXTestUtils.awaitEvents();
+		verify(getController().getGuiHelper().getFacade()).toggleTimeModeInStopwatch();
+
+		// Zustand der Schaltflächen testen
+		assertFalse(stopwatchStartButton.isVisible());
+		assertFalse(stopwatchStartButton.isDisabled());
+
+		assertTrue(stopwatchStopButton.isVisible());
+		assertTrue(stopwatchStopButton.isDisabled());
+
+		assertTrue(stopwatchSplitTimeButton.isVisible());
+		assertFalse(stopwatchSplitTimeButton.isDisabled());
+		assertTrue(stopwatchSplitTimeButton.isSelected());
+		assertTrue(stopwatchSplitTimeButton.isFocused());
+
+		assertTrue(stopwatchResetButton.isVisible());
+		assertFalse(stopwatchResetButton.isDisabled());
+
+		// Zwischenzeit deaktivieren
+		stopwatchSplitTimeButton.fire();
+		FXTestUtils.awaitEvents();
+		verify(getController().getGuiHelper().getFacade(), times(2)).toggleTimeModeInStopwatch(); // zweiter Aufruf
+
+		// Zustand der Schaltflächen testen
+		assertFalse(stopwatchStartButton.isVisible());
+		assertFalse(stopwatchStartButton.isDisabled());
+
+		assertTrue(stopwatchStopButton.isVisible());
+		assertFalse(stopwatchStopButton.isDisabled());
+
+		assertTrue(stopwatchSplitTimeButton.isVisible());
+		assertFalse(stopwatchSplitTimeButton.isDisabled());
+		assertFalse(stopwatchSplitTimeButton.isSelected());
+		assertTrue(stopwatchSplitTimeButton.isFocused());
+
 		assertTrue(stopwatchResetButton.isVisible());
 		assertFalse(stopwatchResetButton.isDisabled());
 
@@ -100,6 +151,10 @@ public class StopwatchControllerTest extends FxmlGuiControllerTest {
 		assertFalse(stopwatchStopButton.isVisible());
 		assertFalse(stopwatchStopButton.isDisabled());
 
+		assertTrue(stopwatchSplitTimeButton.isVisible());
+		assertTrue(stopwatchSplitTimeButton.isDisabled());
+		assertFalse(stopwatchSplitTimeButton.isSelected());
+
 		assertTrue(stopwatchResetButton.isVisible());
 		assertFalse(stopwatchResetButton.isDisabled());
 
@@ -115,6 +170,10 @@ public class StopwatchControllerTest extends FxmlGuiControllerTest {
 
 		assertFalse(stopwatchStopButton.isVisible());
 		assertFalse(stopwatchStopButton.isDisabled());
+
+		assertTrue(stopwatchSplitTimeButton.isVisible());
+		assertTrue(stopwatchSplitTimeButton.isDisabled());
+		assertFalse(stopwatchSplitTimeButton.isSelected());
 
 		assertTrue(stopwatchResetButton.isVisible());
 		assertFalse(stopwatchResetButton.isDisabled());
@@ -223,6 +282,43 @@ public class StopwatchControllerTest extends FxmlGuiControllerTest {
 
 		// gemessene Zeit muss angezeigt sein
 		assertEquals("00:00:00.050", stopwatchTimeLabel.getText());
+
+		// Stoppuhr stoppen
+		stopwatchStopButton.fire();
+		FXTestUtils.awaitEvents();
+		verify(getController().getGuiHelper().getFacade()).stopStopwatch();
+	}
+
+	/**
+	 * Testet die Funktionalität der Zurücksetzen-Schaltfläche während Zwischenzeit aktiv ist.
+	 */
+	@Test
+	public final void testStopwatchResetWhileRunningWithSplitTime() {
+		// Stoppuhr starten
+		stopwatchStartButton.fire();
+		FXTestUtils.awaitEvents();
+		verify(getController().getGuiHelper().getFacade()).startStopwatch();
+
+		// Zwischenzeit aktivieren
+		stopwatchSplitTimeButton.fire();
+		FXTestUtils.awaitEvents();
+		verify(getController().getGuiHelper().getFacade()).toggleTimeModeInStopwatch();
+
+		// Stoppuhr zurücksetzen
+		stopwatchResetButton.fire();
+		FXTestUtils.awaitEvents();
+		verify(getController().getGuiHelper().getFacade()).resetStopwatch();
+
+		// Zustand der Schaltflächen testen
+		assertTrue(stopwatchStopButton.isVisible());
+		assertFalse(stopwatchStopButton.isDisabled());
+
+		assertTrue(stopwatchSplitTimeButton.isVisible());
+		assertFalse(stopwatchSplitTimeButton.isDisabled());
+		assertFalse(stopwatchSplitTimeButton.isSelected());
+
+		assertTrue(stopwatchResetButton.isVisible());
+		assertFalse(stopwatchResetButton.isDisabled());
 
 		// Stoppuhr stoppen
 		stopwatchStopButton.fire();
